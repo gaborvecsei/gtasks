@@ -1,9 +1,11 @@
+import argparse
 import datetime
 import os.path
 import re
 from typing import List, Optional
 
 import dateutil
+import gtaskconfig
 import pandas as pd
 from dateutil import parser
 from google.api_core.datetime_helpers import from_rfc3339
@@ -16,6 +18,7 @@ from rich import box
 from rich.align import Align
 from rich.console import Console
 from rich.live import Live
+from rich.prompt import Prompt
 from rich.table import Table
 from rich.text import Text
 
@@ -111,8 +114,8 @@ class GoogleTasks:
 
 class App:
 
-    def __init__(self, task_list_id: str) -> None:
-        self.task_list_id: str = task_list_id
+    def __init__(self, config: gtaskconfig.Config) -> None:
+        self.config: gtaskconfig.Config = config
         self._g: GoogleTasks = GoogleTasks()
 
     @staticmethod
@@ -154,21 +157,54 @@ class App:
                 elapsed_days = (current_date - updated_date).days
             task["elapsed_days"] = elapsed_days
 
-        # Sort tasks based on update time
-        tasks = sorted(tasks, key=lambda x: x["updated"], reverse=True)
-
         return tasks
 
-    def list_tasks(self) -> None:
+    def list_task_lists(self, include_change_prompt: bool = False) -> None:
+        task_lists: List[dict] = self._g.get_task_lists()
+
+        table = Table(show_footer=False, show_header=True, header_style="bold")
+        table.add_column("Nb.", no_wrap=True, justify="center")
+        table.add_column("Title", no_wrap=True, justify="left")
+        table.add_column("ID", no_wrap=True, justify="left")
+        table.title = "Google Tasks - not completed"
+        table.caption = "[i]https://mail.google.com/tasks/canvas[/]"
+
+        for i, item in enumerate(task_lists):
+            table.add_row(str(i), item["title"], item["id"])
+
+        console = Console()
+        console.print(table)
+
+        print(f"The default list is: {self.config.task_list_id}")
+
+        if include_change_prompt:
+            chosen_list_number: int = int(Prompt.ask("Which task list to use (inter the Nb."))
+            try:
+                chosen_list_id = task_lists[chosen_list_number]["id"]
+                self.config.task_list_id = chosen_list_id
+                print("Default task list id is set, you can play around with the other commands")
+            except IndexError:
+                print("This Nb. does not exists in the list")
+
+    def list_tasks(self, sort_by_updatetime: bool = False, sort_by_due_date: bool = True) -> None:
+        if sum([sort_by_due_date, sort_by_updatetime]) > 1:
+            raise ValueError("Only 1 of them could be True")
+
         # Retrieve the tasks
-        tasks: List[dict] = self._g.list_tasks(self.task_list_id)
+        tasks: List[dict] = self._g.list_tasks(self.config.task_list_id)
         tasks = self._process_tasks(tasks)
+
+        if sort_by_updatetime:
+            tasks = sorted(tasks, key=lambda x: x["updated"], reverse=True)
+        elif sort_by_due_date:
+            # Sorting trick for Nones: https://stackoverflow.com/a/18411610/5108062
+            tasks = sorted(tasks, key=lambda x: (x["due"] is None, x["due"]), reverse=False)
 
         # Visualization
 
         table = Table(show_footer=False, show_header=True, header_style="bold")
 
-        table.add_column("Due", no_wrap=True)
+        table.add_column("Due", no_wrap=True, justify="center")
         # table.add_column("Updated", no_wrap=True, style="dim")
         table.add_column("Days since\nupdate", no_wrap=True, justify="center", style="dim")
         table.add_column("Task", justify="left")
@@ -178,7 +214,7 @@ class App:
 
         for task in tasks:
             due_date: datetime.datetime = task["due"]
-            due_str = ""
+            due_str = "-"
             if due_date:
                 due_str: str = due_date.strftime("%Y/%m/%d")
                 due_str = due_str[2:]
@@ -212,8 +248,28 @@ class App:
 
 
 def main():
-    app = App(task_list_id="MTA0NDY1OTUxNjkwNTc2OTg0NzY6MDow")
-    app.list_tasks()
+    import pudb; pudb.set_trace()
+    conf = gtaskconfig.Config()
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(required=True, dest="command")
+
+    list_task_lists_parser = subparsers.add_parser("lists")
+    list_task_lists_parser.add_argument("-c",
+                                        "--change",
+                                        action="store_true",
+                                        help="You are able to change the default list")
+
+    list_tasks_parser = subparsers.add_parser("list")
+    list_tasks_parser.add_argument("-s", "--sort", choices=["due", "update"], help="What date to sort by?")
+
+    args = parser.parse_args()
+
+    app = App(config=conf)
+    if args.command == "lists":
+        app.list_task_lists(include_change_prompt=args.change)
+    elif args.command == "list":
+        app.list_tasks(args.sort == "update", args.sort == "due")
 
 
 if __name__ == '__main__':
