@@ -50,3 +50,4 @@ class Config:
     def _write_config_to_file(self) -> None:
         with open(str(self._config_file_path), "w") as f:
             json.dump(self._config, f)
+        print(f"The {self._DEFAULT_FILE_NAME} file is updated. (full path: {self._config_file_path}")
