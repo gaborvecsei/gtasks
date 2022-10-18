@@ -3,17 +3,29 @@ from pathlib import Path
 
 
 class Config:
-    # DEFAULT_PATH = Path.home() / ".gtaskconfig.json"
-    DEFAULT_PATH = Path(".gtaskconfig.json")
+    _DEFAULT_FILE_NAME = ".gtasksrc.json"
+    _DEFAULT_PATH_HOME = Path.home() / _DEFAULT_FILE_NAME
+    _DEFAULT_PATH_LOCAL = Path(_DEFAULT_FILE_NAME)
 
     def __init__(self) -> None:
-        if not self.DEFAULT_PATH.exists():
-            raise RuntimeError("The configuration file is needed")
 
-        with open(str(self.DEFAULT_PATH), "r") as f:
+        # We expect the config file either in the home directory or in the local directory
+        # (from where the command is called)
+        self._config_file_path: Path = self._get_gtasksrc_path()
+
+        with open(str(self._config_file_path), "r") as f:
             self._config: dict = json.load(f)
 
+        self._client_secret_file_path: Path = Path(self._config["auth"]["client_secret_path"])
         self._task_list_id: str = self._config["default_list_id"]
+
+    def _get_gtasksrc_path(self) -> Path:
+        if self._DEFAULT_PATH_HOME.exists():
+            return self._DEFAULT_PATH_HOME
+        elif not self._DEFAULT_PATH_LOCAL.exists():
+            return self._DEFAULT_PATH_LOCAL
+        else:
+            raise RuntimeError(f"The configuration file {self._DEFAULT_FILE_NAME} is not found")
 
     @property
     def config(self) -> dict:
@@ -28,6 +40,13 @@ class Config:
         self._config["default_list_id"] = val
         self._write_config_to_file()
 
+    @property
+    def client_secret_path(self) -> Path:
+        if self._client_secret_file_path.exists():
+            return self._client_secret_file_path
+        else:
+            raise FileNotFoundError("The client_secret.json is not found")
+
     def _write_config_to_file(self) -> None:
-        with open(str(self.DEFAULT_PATH), "w") as f:
+        with open(str(self._config_file_path), "w") as f:
             json.dump(self._config, f)

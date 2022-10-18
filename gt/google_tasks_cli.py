@@ -248,7 +248,6 @@ class App:
 
 
 def main():
-    import pudb; pudb.set_trace()
     conf = gtaskconfig.Config()
 
     parser = argparse.ArgumentParser()
