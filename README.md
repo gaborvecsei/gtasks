@@ -26,3 +26,8 @@ If date is not defined (and no `|`) then it will be created without a due date
         - If a task is over it's due date the date field is `red`
         - If a due date is in the future it'll be `blue`
         - If not due date, then its the `default color`
+
+## Config
+
+The configuration `json` file should be located at `$HOME/.gtasksconfig.json` or where the command is called `./.gtasksconfig.json`
+
