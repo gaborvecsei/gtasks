@@ -2,25 +2,19 @@ import argparse
 import datetime
 import os.path
 import re
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Union
 
-import dateutil
-import gtaskconfig
-import pandas as pd
-from dateutil import parser
 from google.api_core.datetime_helpers import from_rfc3339
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from rich import box
-from rich.align import Align
 from rich.console import Console
-from rich.live import Live
 from rich.prompt import Prompt
 from rich.table import Table
-from rich.text import Text
+
+from gt import gtaskconfig
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/tasks']
@@ -28,12 +22,12 @@ SCOPES = ['https://www.googleapis.com/auth/tasks']
 
 class GoogleTasks:
 
-    def __init__(self, client_secret_file: str = "client_secret.json") -> None:
-        self._client_secret_file = client_secret_file
+    def __init__(self, client_secret_file_path: Path) -> None:
+        self._client_secret_file_path: Path = client_secret_file_path
         self._service = None
 
     @staticmethod
-    def _auth(secret_json_file_path: str, token_json_file_name: str = "token.json") -> Credentials:
+    def _auth(secret_json_file_path: Union[str, Path], token_json_file_name: str) -> Credentials:
         """
         The file token.json stores the user's access and refresh tokens, and is
         created automatically when the authorization flow completes for the first
@@ -58,7 +52,7 @@ class GoogleTasks:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(secret_json_file_path, SCOPES)
+                flow = InstalledAppFlow.from_client_secrets_file(str(secret_json_file_path), SCOPES)
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open(token_json_file_name, 'w') as token:
@@ -76,7 +70,7 @@ class GoogleTasks:
         """
 
         if self._service is None:
-            creds = self._auth(self._client_secret_file, "token.json")
+            creds = self._auth(self._client_secret_file_path, "token.json")
             self._service = build("tasks", "v1", credentials=creds)
         return self._service
 
@@ -116,7 +110,7 @@ class App:
 
     def __init__(self, config: gtaskconfig.Config) -> None:
         self.config: gtaskconfig.Config = config
-        self._g: GoogleTasks = GoogleTasks()
+        self._g: GoogleTasks = GoogleTasks(config._client_secret_file_path)
 
     @staticmethod
     def _parse_rfc3339_date_str(d: dict, k: str) -> Optional[datetime.datetime]:

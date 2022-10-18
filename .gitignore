@@ -1,5 +1,5 @@
 __pycache__/
-client_secret.json
 token.json
-.gtaskconfig.json
-
+gt.egg-info/
+build/
+dist/
