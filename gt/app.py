@@ -58,26 +58,34 @@ class App:
 
         return tasks
 
+    @staticmethod
+    def _get_default_table() -> Table:
+        table = Table(show_footer=False, show_header=True, header_style="bold")
+        table.title = "Google Tasks"
+        table.caption = "[i]https://mail.google.com/tasks/canvas[/]"
+        return table
+
     def list_task_lists(self, include_change_prompt: bool = False) -> None:
         task_lists: List[dict] = self._g.get_task_lists()
 
-        table = Table(show_footer=False, show_header=True, header_style="bold")
+        table = self._get_default_table()
         table.add_column("Nb.", no_wrap=True, justify="center")
         table.add_column("Title", no_wrap=True, justify="left")
         table.add_column("ID", no_wrap=True, justify="left")
-        table.title = "Google Tasks - not completed"
-        table.caption = "[i]https://mail.google.com/tasks/canvas[/]"
 
         for i, item in enumerate(task_lists):
-            table.add_row(str(i), item["title"], item["id"])
+            list_id = item["id"]
+            list_title = item["title"]
+            # Mark which is the default list, which is chosen by the user
+            if list_id == self.config.task_list_id:
+                list_title = f":star: {list_title}"
+            table.add_row(str(i), list_title, list_id)
 
         console = Console()
         console.print(table)
 
-        print(f"The default list is: {self.config.task_list_id}")
-
         if include_change_prompt:
-            chosen_list_number: int = int(Prompt.ask("Which task list to use (inter the Nb."))
+            chosen_list_number: int = int(Prompt.ask("Which task list to use (enter the nb."))
             try:
                 chosen_list_id = task_lists[chosen_list_number]["id"]
                 self.config.task_list_id = chosen_list_id
@@ -85,12 +93,13 @@ class App:
             except IndexError:
                 print("This Nb. does not exists in the list")
 
-    def list_tasks(self, sort_by_updatetime: bool = False, sort_by_due_date: bool = True) -> None:
+    def list_tasks(self, sort_by_updatetime: bool = False, sort_by_due_date: bool = True, head: int = 10) -> None:
         if sum([sort_by_due_date, sort_by_updatetime]) > 1:
             raise ValueError("Only 1 of them could be True")
 
         # Retrieve the tasks
         tasks: List[dict] = self._g.list_tasks(self.config.task_list_id)
+        import pprint; pprint.pprint(tasks)
         tasks = self._process_tasks(tasks)
 
         if sort_by_updatetime:
@@ -99,19 +108,19 @@ class App:
             # Sorting trick for Nones: https://stackoverflow.com/a/18411610/5108062
             tasks = sorted(tasks, key=lambda x: (x["due"] is None, x["due"]), reverse=False)
 
+        # Limit the number of tasks
+        tasks_limited = tasks[:head]
+
         # Visualization
 
-        table = Table(show_footer=False, show_header=True, header_style="bold")
+        table = self._get_default_table()
 
         table.add_column("Due", no_wrap=True, justify="center")
         # table.add_column("Updated", no_wrap=True, style="dim")
         table.add_column("Days since\nupdate", no_wrap=True, justify="center", style="dim")
         table.add_column("Task", justify="left")
 
-        table.title = "Google Tasks - not completed"
-        table.caption = "[i]https://mail.google.com/tasks/canvas[/]"
-
-        for task in tasks:
+        for task in tasks_limited:
             due_date: datetime.datetime = task["due"]
             due_str = "-"
             if due_date:
@@ -141,6 +150,9 @@ class App:
                 title
             ]
             table.add_row(*table_row)
+
+        if len(tasks) > head:
+            table.add_row("...", "...", "...")
 
         console = Console()
         console.print(table)
