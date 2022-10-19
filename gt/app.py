@@ -99,7 +99,6 @@ class App:
 
         # Retrieve the tasks
         tasks: List[dict] = self._g.list_tasks(self.config.task_list_id)
-        import pprint; pprint.pprint(tasks)
         tasks = self._process_tasks(tasks)
 
         if sort_by_updatetime:
