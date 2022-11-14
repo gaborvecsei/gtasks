@@ -15,7 +15,7 @@ class App:
 
     def __init__(self, config: Config) -> None:
         self.config: Config = config
-        self._g: GoogleTasks = GoogleTasks(config._client_secret_file_path)
+        self._g: GoogleTasks = GoogleTasks(config.client_secret_path, config.token_path)
 
     @staticmethod
     def _parse_rfc3339_date_str(d: dict, k: str) -> Optional[datetime.datetime]:

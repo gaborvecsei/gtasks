@@ -13,12 +13,13 @@ SCOPES = ['https://www.googleapis.com/auth/tasks']
 
 class GoogleTasks:
 
-    def __init__(self, client_secret_file_path: Path) -> None:
+    def __init__(self, client_secret_file_path: Path, token_file_path: Path) -> None:
         self._client_secret_file_path: Path = client_secret_file_path
+        self._token_file_path: Path = token_file_path
         self._service = None
 
     @staticmethod
-    def _auth(secret_json_file_path: Union[str, Path], token_json_file_name: str) -> Credentials:
+    def _auth(secret_json_file_path: Union[str, Path], token_json_file_path: Union[str, Path]) -> Credentials:
         """
         The file token.json stores the user's access and refresh tokens, and is
         created automatically when the authorization flow completes for the first
@@ -35,8 +36,8 @@ class GoogleTasks:
         creds: Optional[Credentials] = None
 
         # Auth by token if it exists
-        if os.path.exists(token_json_file_name):
-            creds = Credentials.from_authorized_user_file(token_json_file_name, SCOPES)
+        if os.path.exists(token_json_file_path):
+            creds = Credentials.from_authorized_user_file(token_json_file_path, SCOPES)
         # If there are no (valid) credentials available, let the user log in - but we need the client secret for this
         if not creds or not creds.valid:
             # Refresh token if it is expired
@@ -46,7 +47,7 @@ class GoogleTasks:
                 flow = InstalledAppFlow.from_client_secrets_file(str(secret_json_file_path), SCOPES)
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
-            with open(token_json_file_name, 'w') as token:
+            with open(str(token_json_file_path), 'w') as token:
                 token.write(creds.to_json())
 
         return creds
@@ -61,7 +62,7 @@ class GoogleTasks:
         """
 
         if self._service is None:
-            creds = self._auth(self._client_secret_file_path, "token.json")
+            creds = self._auth(self._client_secret_file_path, self._token_file_path)
             self._service = build("tasks", "v1", credentials=creds)
         return self._service
 

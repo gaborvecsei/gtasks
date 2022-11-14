@@ -17,6 +17,7 @@ class Config:
             self._config: dict = json.load(f)
 
         self._client_secret_file_path: Path = Path(self._config["auth"]["client_secret_path"])
+        self._token_file_path: Path = Path(self._config["auth"]["token_path"])
         self._task_list_id: str = self._config["default_list_id"]
 
     def _get_gtasksrc_path(self) -> Path:
@@ -46,6 +47,10 @@ class Config:
             return self._client_secret_file_path
         else:
             raise FileNotFoundError("The client_secret.json is not found")
+
+    @property
+    def token_path(self) -> Path:
+            return self._token_file_path
 
     def _write_config_to_file(self) -> None:
         with open(str(self._config_file_path), "w") as f:
