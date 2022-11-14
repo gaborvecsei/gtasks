@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
+from googleapiclient.discovery import HttpRequest, build
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/tasks']
@@ -96,3 +96,17 @@ class GoogleTasks:
                                             maxResults=max_results).execute()
         items = results.get("items", [])
         return items
+
+    def add_task(self,
+                 tasklist_id: str,
+                 title: str,
+                 notes: Optional[str] = None,
+                 due_date_rfc_3339: Optional[str] = None) -> dict:
+        body = {"status": "needsAction", "title": title}
+        if notes is not None:
+            body["notes"] = notes
+        if due_date_rfc_3339 is not None:
+            body["due"] = due_date_rfc_3339
+
+        ret: dict = self.service.tasks().insert(tasklist=tasklist_id, body=body).execute()
+        return ret

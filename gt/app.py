@@ -2,7 +2,7 @@ import datetime
 import re
 from typing import List, Optional
 
-from google.api_core.datetime_helpers import from_rfc3339
+from google.api_core.datetime_helpers import from_rfc3339, to_rfc3339
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
@@ -155,3 +155,30 @@ class App:
 
         console = Console()
         console.print(table)
+
+    def add_task_to_list(self):
+        console = Console()
+        prompt: str = console.input("Create task: ")
+        prompt_list: List[str] = prompt.split(";")
+
+        title = None
+        notes = None
+        due = None
+
+        if len(prompt_list) == 1:
+            title = prompt_list[0]
+        elif len(prompt_list) == 2:
+            title = prompt_list[0]
+            notes = prompt_list[1]
+        elif len(prompt_list) == 3:
+            title = prompt_list[0]
+            notes = prompt_list[1]
+            due = prompt_list[2]
+
+        if due is not None:
+            raise NotImplementedError("Date needs to be parsed, and we need to run several checks, not yet done")
+
+        if title is None:
+            raise ValueError("A title is the bare minimum to create a task")
+
+        self._g.add_task(self.config.task_list_id, title=title, notes=notes, due_date_rfc_3339=due)

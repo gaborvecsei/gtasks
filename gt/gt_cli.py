@@ -22,6 +22,10 @@ def main():
     list_tasks_parser.add_argument("-s", "--sort", choices=["due", "update"], help="What date to sort by?")
     list_tasks_parser.add_argument("--head", type=int, default=1000, help="Display the first N entries in the table")
 
+    # Create a new task
+    add_task_parser = subparsers.add_parser("add")
+    # add_task_parser.add_argument("task_prompt", type=str)
+
     args = parser.parse_args()
 
     app = App(config=conf)
@@ -29,6 +33,8 @@ def main():
         app.list_task_lists(include_change_prompt=args.change)
     elif args.command == "list":
         app.list_tasks(args.sort == "update", args.sort == "due", head=args.head)
+    elif args.command == "add":
+        app.add_task_to_list()
 
 
 if __name__ == '__main__':

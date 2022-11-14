@@ -31,3 +31,6 @@ If date is not defined (and no `|`) then it will be created without a due date
 
 The configuration `json` file should be located at `$HOME/.gtasksconfig.json` or where the command is called `./.gtasksconfig.json`
 
+## Misc
+
+- PyDoc documentation: https://developers.google.com/resources/api-libraries/documentation/tasks/v1/python/latest/index.html
