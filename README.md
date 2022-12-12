@@ -1,5 +1,9 @@
 # Google Tasks CLI Tool
 
+**WIP - IN ACTIVE DEVELOPMENT**
+
+**!!! The readme is just like a TODO list, this will changed a lot**
+
 ## Setup
 
 Needs API setup in the Google Dev Console
