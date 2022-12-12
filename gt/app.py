@@ -2,7 +2,7 @@ import datetime
 import re
 from typing import List, Optional
 
-from google.api_core.datetime_helpers import from_rfc3339, to_rfc3339
+from dateutil.parser import parse
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
@@ -19,11 +19,11 @@ class App:
 
     @staticmethod
     def _parse_rfc3339_date_str(d: dict, k: str) -> Optional[datetime.datetime]:
-        s = d.get(k, None)
+        s: str = d.get(k, None)
         date = None
         if s:
             # Based on the documentation rfc3339 standard is used
-            date = from_rfc3339(s)
+            date = parse(s) #.replace(tzinfo=None)
         return date
 
     @staticmethod
@@ -81,6 +81,10 @@ class App:
                 list_title = f":star: {list_title}"
             table.add_row(str(i), list_title, list_id)
 
+        # If there is no task list selected, then use the first one as default
+        if self.config.task_list_id.replace(" ", "") == "":
+            self.config.task_list_id = task_lists[0]["id"]
+
         console = Console()
         console.print(table)
 
@@ -96,6 +100,11 @@ class App:
     def list_tasks(self, sort_by_updatetime: bool = False, sort_by_due_date: bool = True, head: int = 10) -> None:
         if sum([sort_by_due_date, sort_by_updatetime]) > 1:
             raise ValueError("Only 1 of them could be True")
+
+        if self.config.task_list_id.replace(" ", "") == "":
+            print("[*] No task list is selected, please select a list first with 'gt lists'")
+            import sys
+            sys.exit(1)
 
         # Retrieve the tasks
         tasks: List[dict] = self._g.list_tasks(self.config.task_list_id)
@@ -144,7 +153,7 @@ class App:
 
             table_row = [
                 due_str,
-                # updated_str,
+            # updated_str,
                 elapsed_days,
                 title
             ]

@@ -1,5 +1,18 @@
 import json
+import sys
 from pathlib import Path
+
+import pydantic
+
+
+class AuthConfig(pydantic.BaseModel):
+    token_path: str
+    client_secret_path: str
+
+
+class ConfigData(pydantic.BaseModel):
+    default_list_id: str
+    auth: AuthConfig
 
 
 class Config:
@@ -13,12 +26,16 @@ class Config:
         # (from where the command is called)
         self._config_file_path: Path = self._get_gtasksrc_path()
 
-        with open(str(self._config_file_path), "r") as f:
-            self._config: dict = json.load(f)
+        try:
+            self._config: ConfigData = ConfigData.parse_file(str(self._config_file_path))
+        except FileNotFoundError:
+            print("[*] You need to create a config file - please check the README (e.g.: touch $HOME/.gtasksrc.json)")
+            sys.exit(1)
 
-        self._client_secret_file_path: Path = Path(self._config["auth"]["client_secret_path"])
-        self._token_file_path: Path = Path(self._config["auth"]["token_path"])
-        self._task_list_id: str = self._config["default_list_id"]
+        # Parse the file immediately
+        self._client_secret_file_path: Path = Path(self._config.auth.client_secret_path)
+        self._token_file_path: Path = Path(self._config.auth.token_path)
+        self._task_list_id: str = self._config.default_list_id
 
     def _get_gtasksrc_path(self) -> Path:
         if self._DEFAULT_PATH_HOME.exists():
@@ -29,7 +46,7 @@ class Config:
             raise RuntimeError(f"The configuration file {self._DEFAULT_FILE_NAME} is not found")
 
     @property
-    def config(self) -> dict:
+    def config(self) -> ConfigData:
         return self._config
 
     @property
@@ -38,7 +55,7 @@ class Config:
 
     @task_list_id.setter
     def task_list_id(self, val) -> None:
-        self._config["default_list_id"] = val
+        self._config.default_list_id = val
         self._write_config_to_file()
 
     @property
@@ -50,9 +67,9 @@ class Config:
 
     @property
     def token_path(self) -> Path:
-            return self._token_file_path
+        return self._token_file_path
 
     def _write_config_to_file(self) -> None:
         with open(str(self._config_file_path), "w") as f:
-            json.dump(self._config, f)
+            json.dump(self._config.dict(), f)
         print(f"The {self._DEFAULT_FILE_NAME} file is updated. (full path: {self._config_file_path}")
