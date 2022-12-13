@@ -1,11 +1,14 @@
 import datetime
+from os import wait
 import re
 from typing import List, Optional
 
+import dateparser
 from dateutil.parser import parse
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
+from rich import box
 
 from gt.google_tasks import GoogleTasks
 from gt.gtaskconfig import Config
@@ -23,7 +26,7 @@ class App:
         date = None
         if s:
             # Based on the documentation rfc3339 standard is used
-            date = parse(s) #.replace(tzinfo=None)
+            date = parse(s)    #.replace(tzinfo=None)
         return date
 
     @staticmethod
@@ -63,6 +66,7 @@ class App:
         table = Table(show_footer=False, show_header=True, header_style="bold")
         table.title = "Google Tasks"
         table.caption = "[i]https://mail.google.com/tasks/canvas[/]"
+        table.box = box.ROUNDED
         return table
 
     def list_task_lists(self, include_change_prompt: bool = False) -> None:
@@ -143,11 +147,14 @@ class App:
                 updated_str: str = updated_date.strftime("%Y/%m/%d %H:%M")
                 updated_str = updated_str[2:]
 
-            title = task["title"]
+            title = f"[b]{task['title']}[/b]"
             if task["expired"]:
                 title = f"[red]{title}[/red]"
             if task["prio"]:
                 title = f"[reverse] {title} [/reverse]"
+
+            if "notes" in task:
+                title += f" - [i][dim]{task['notes']}[/dim][/i]"
 
             elapsed_days = str(task["elapsed_days"])
 
@@ -162,30 +169,51 @@ class App:
         if len(tasks) > head:
             table.add_row("...", "...", "...")
 
+        # table.row_styles = ["none", "dim"]
+
         console = Console()
         console.print(table)
 
-    def add_task_to_list(self):
-        console = Console()
-        prompt: str = console.input("Create task: ")
-        prompt_list: List[str] = prompt.split(";")
+    def add_task_to_list(self, prompt_input: Optional[str] = None):
+        prompt: str = ""
+        if prompt_input is not None:
+            prompt = " ".join(prompt_input)
+
+        # If prompt is not provided, then we'll ask for it
+        if prompt == "":
+            console = Console()
+            prompt = console.input("Create task: ")
+
+        # Split prompt to the different sections
+        prompt_list: List[str] = prompt.split("~")
+
+        # TODO: what to do when not enought items are in the list?
 
         title = None
         notes = None
         due = None
 
         if len(prompt_list) == 1:
+            # Example: "This is a note"
             title = prompt_list[0]
         elif len(prompt_list) == 2:
+            # Example: "This is a note ~ tomorrow 11AM"
             title = prompt_list[0]
-            notes = prompt_list[1]
+            due = prompt_list[1]
         elif len(prompt_list) == 3:
+            # Example: "This is a note ~ Some extra note ~ tomorrow 11AM"
             title = prompt_list[0]
             notes = prompt_list[1]
             due = prompt_list[2]
 
         if due is not None:
-            raise NotImplementedError("Date needs to be parsed, and we need to run several checks, not yet done")
+            due = dateparser.parse(due)
+            if due is None:
+                # TODO: better error handling
+                print("[*] Could not parse the date try it again")
+            else:
+                # Convert to the RFC3339 standard
+                due = due.astimezone().isoformat()
 
         if title is None:
             raise ValueError("A title is the bare minimum to create a task")

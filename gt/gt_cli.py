@@ -24,7 +24,17 @@ def main():
 
     # Create a new task
     add_task_parser = subparsers.add_parser("add")
-    # add_task_parser.add_argument("task_prompt", type=str)
+    add_task_parser.add_argument("prompt",
+                                 nargs="*",
+                                 type=str,
+                                 default=None,
+                                 help="""Prompt for creating the task.
+
+                                 Examples:
+                                 'This is a note' OR
+                                 'This is a note ~ tomorrow 11AM' OR
+                                 'This is a note ~ Some extra note ~ tomorrow 11AM'
+                                 """)
 
     args = parser.parse_args()
 
@@ -34,7 +44,7 @@ def main():
     elif args.command == "list":
         app.list_tasks(args.sort == "update", args.sort == "due", head=args.head)
     elif args.command == "add":
-        app.add_task_to_list()
+        app.add_task_to_list(prompt_input=args.prompt)
 
 
 if __name__ == '__main__':
