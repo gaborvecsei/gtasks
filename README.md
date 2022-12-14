@@ -15,8 +15,11 @@ Needs API setup in the Google Dev Console
     - `gt list`: Lists not completed tasks
     - `gt list -a`: Lists completed and non-completed tasks
     - `gt list -c`: Lists only completed tasks
-- `gt add <TASK MESSAGE | DATE>`: Adds a new task with a due date if defined. `|` separates the message from the date.
-If date is not defined (and no `|`) then it will be created without a due date
+- `gt add <PROMPT>`: Adds a new task with a due date if defined. `~` separates the message from the date.
+    - Examples:
+        - `gt add This is a test task ~ with some notes ~ tomorrow 2PM`
+        - `gt add This is a test task ~ tomorrow 2PM`
+        - `gt add This is a test task`
 - `gt snooze`: Update the due date where there was a due date and it is past the current day.
 *Unfortunately we cannot read or modify the time info only the date...*
     - Update rule

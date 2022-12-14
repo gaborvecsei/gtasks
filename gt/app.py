@@ -1,14 +1,14 @@
 import datetime
-from os import wait
 import re
+from os import wait
 from typing import List, Optional
 
 import dateparser
 from dateutil.parser import parse
+from rich import box
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
-from rich import box
 
 from gt.google_tasks import GoogleTasks
 from gt.gtaskconfig import Config
@@ -101,7 +101,11 @@ class App:
             except IndexError:
                 print("This Nb. does not exists in the list")
 
-    def list_tasks(self, sort_by_updatetime: bool = False, sort_by_due_date: bool = True, head: int = 10) -> None:
+    def list_tasks(self,
+                   sort_by_updatetime: bool = False,
+                   sort_by_due_date: bool = True,
+                   head: int = 10,
+                   show_completed: bool = False) -> None:
         if sum([sort_by_due_date, sort_by_updatetime]) > 1:
             raise ValueError("Only 1 of them could be True")
 
@@ -111,7 +115,10 @@ class App:
             sys.exit(1)
 
         # Retrieve the tasks
-        tasks: List[dict] = self._g.list_tasks(self.config.task_list_id)
+        tasks: List[dict] = self._g.list_tasks(self.config.task_list_id,
+                                               show_completed=show_completed,
+                                               show_hidden=show_completed)
+
         tasks = self._process_tasks(tasks)
 
         if sort_by_updatetime:
@@ -126,13 +133,21 @@ class App:
         # Visualization
 
         table = self._get_default_table()
+        table.title = "Tasks"
+        if show_completed:
+            table.title = "Completed Tasks"
 
+        table.add_column("Id", no_wrap=True, justify="center")
         table.add_column("Due", no_wrap=True, justify="center")
         # table.add_column("Updated", no_wrap=True, style="dim")
         table.add_column("Days since\nupdate", no_wrap=True, justify="center", style="dim")
         table.add_column("Task", justify="left")
 
         for task in tasks_limited:
+            if show_completed:
+                if task["status"] != "completed":
+                    continue
+
             due_date: datetime.datetime = task["due"]
             due_str = "-"
             if due_date:
@@ -159,6 +174,7 @@ class App:
             elapsed_days = str(task["elapsed_days"])
 
             table_row = [
+                task["id"],
                 due_str,
             # updated_str,
                 elapsed_days,
@@ -219,3 +235,19 @@ class App:
             raise ValueError("A title is the bare minimum to create a task")
 
         self._g.add_task(self.config.task_list_id, title=title, notes=notes, due_date_rfc_3339=due)
+
+    def delete_tasks(self, task_ids: List[str]):
+        if len(task_ids) == 0:
+            raise NotImplemented
+
+        for _id in task_ids:
+            self._g.delete_task(self.config.task_list_id, _id)
+            print(f"Deleted task: {_id}")
+
+    def complete_tasks(self, task_ids: List[str]):
+        if len(task_ids) == 0:
+            raise NotImplemented
+
+        for _id in task_ids:
+            self._g.complete_task(self.config.task_list_id, _id)
+            print(f"Completed task: {_id}")

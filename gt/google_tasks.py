@@ -85,6 +85,10 @@ class GoogleTasks:
                    show_deleted: bool = False,
                    show_hidden: bool = False,
                    max_results: int = 100) -> List[dict]:
+        if show_completed:
+            # Completed can only show when hidden is shown
+            show_hidden = show_completed
+
         if max_results > 100:
             raise ValueError(
                 "Maximum is 100: https://google-api-client-libraries.appspot.com/documentation/tasks/v1/python/latest/tasks_v1.tasks.html#list"
@@ -110,3 +114,11 @@ class GoogleTasks:
 
         ret: dict = self.service.tasks().insert(tasklist=tasklist_id, body=body).execute()
         return ret
+
+    def delete_task(self, task_list_id: str, task_id: str) -> None:
+        self.service.tasks().delete(tasklist=task_list_id, task=task_id).execute()
+
+    def complete_task(self, tasklist_id: str, task_id: str) -> None:
+        # TODO: do we need to update the updatetime or is it updated automatically?
+        body = {"status": "completed", "id": task_id}
+        _ = self.service.tasks().update(tasklist=tasklist_id, task=task_id, body=body).execute()
