@@ -170,6 +170,11 @@ class App:
 
             if "notes" in task:
                 title += f" - [i][dim]{task['notes']}[/dim][/i]"
+            
+            # TODO: Somehow the links is an empty list every time
+            # links = task.get("links", [])
+            # for link in links:
+            #     title += f"\n[i][dim][blue]{link['link']}[/blue][/dim][/i]"
 
             elapsed_days = str(task["elapsed_days"])
 
